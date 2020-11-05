@@ -1,0 +1,43 @@
+fastlane_require "dotenv"
+
+before_all do
+  Dotenv.load ".env.secret"
+end
+
+desc "Create on Developer Portal and App Store Connect"
+lane :create_app do
+  create_app_online # produce
+end 
+
+platform :ios do
+  before_all do
+    Dotenv.load ".env.ios"
+  end
+
+  desc "Sync signing"
+  lane :signing do
+    sync_code_signing #"match"
+
+    mapping = Actions.lane_context[
+      SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING
+    ]
+
+    update_code_signing_settings(
+      profile_name: mapping[ENV['MATCH_APP_IDENTIFIER']]
+    )
+  end
+
+  desc "Build binary"
+  lane :build do
+    signing
+    build_ios_app
+      puts("Fastlane Build binary")
+  end
+
+  desc "Release binary"
+  lane :release do
+    build
+    upload_to_app_store #deliver
+      puts("Fastlane Release")
+  end
+end
